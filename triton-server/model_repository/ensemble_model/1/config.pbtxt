@@ -1,0 +1,78 @@
+name: "ensemble_model"
+platform: "ensemble"
+max_batch_size: 0
+
+input [
+  {
+    name: "RAW_IMAGE"
+    data_type: TYPE_UINT8
+    dims: [-1]  # Variable length raw image bytes
+  }
+]
+
+output [
+  {
+    name: "TOP_CLASSES"
+    data_type: TYPE_INT32
+    dims: [5]
+  },
+  {
+    name: "TOP_PROBABILITIES"
+    data_type: TYPE_FP32
+    dims: [5]
+  },
+  {
+    name: "TOP_LABELS"
+    data_type: TYPE_INT8
+    dims: [5]
+  }
+]
+
+ensemble_scheduling {
+  step [
+    {
+      model_name: "preprocess"
+      model_version: -1
+      input_map {
+        key: "RAW_IMAGE"
+        value: "RAW_IMAGE"
+      }
+      output_map {
+        key: "data"
+        value: "preprocessed_image"
+      }
+    },
+    {
+      model_name: "squeezenet_onnx"
+      model_version: -1
+      input_map {
+        key: "data"
+        value: "preprocessed_image"
+      }
+      output_map {
+        key: "squeezenet0_flatten0_reshape0"
+        value: "model_predictions"
+      }
+    },
+    {
+      model_name: "postprocess"
+      model_version: -1
+      input_map {
+        key: "MODEL_OUTPUT"
+        value: "model_predictions"
+      }
+      output_map {
+        key: "TOP_CLASSES"
+        value: "TOP_CLASSES"
+      }
+      output_map {
+        key: "TOP_PROBABILITIES"
+        value: "TOP_PROBABILITIES"
+      }
+      output_map {
+        key: "TOP_LABELS"
+        value: "TOP_LABELS"
+      }
+    }
+  ]
+}

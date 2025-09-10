@@ -1,0 +1,11 @@
+FROM nvcr.io/nvidia/tritonserver:24.09-py3
+
+# Install pip if not present and upgrade
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Python dependencies (including opencv-python)
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install opencv-python numpy pillow

@@ -1,0 +1,14 @@
+FROM rayproject/ray:2.10.0-py311
+
+WORKDIR /app
+COPY . ./
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+EXPOSE 8080 8265
+
+CMD ["python","combined_ray.py"]
+
+# CMD ["python","ray_triton_app.py"]

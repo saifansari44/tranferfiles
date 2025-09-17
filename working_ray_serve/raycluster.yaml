@@ -1,0 +1,39 @@
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: image-serve
+  namespace: rayserve
+spec:
+  rayVersion: "2.3.0"
+  headGroupSpec:
+    serviceType: LoadBalancer
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: localhost:5000/ray-triton-app:v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              # Start Ray head only
+              ray start --head --dashboard-host=0.0.0.0 &&
+              tail -f /dev/null
+
+  workerGroupSpecs:
+  - groupName: worker
+    replicas: 2
+    rayStartParams:
+      # Connect to head using Kubernetes service DNS
+      address: "ray-head.rayserve.svc.cluster.local:10001"
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: localhost:5000/ray-triton-app:v1
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              ray start --address="image-serve-head-svc.rayserve.svc.cluster.local:6379"
+              serve run combined_ray_wo_fastapi:app --host 0.0.0.0 --port 8000

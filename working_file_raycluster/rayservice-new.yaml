@@ -1,0 +1,29 @@
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  name: image-serve
+  namespace: rayserve
+spec:
+  # rayClusterConfig:
+  rayVersion: "2.3.0"
+  headGroupSpec:
+    serviceType: LoadBalancer
+    rayStartParams:
+      dashboard-host: "0.0.0.0"
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: localhost:5000/ray-triton-app:latest
+          command: ["/bin/bash", "-c"]
+          args: ["ray start --head --dashboard-host=0.0.0.0 && python combined_ray.py"]
+  workerGroupSpecs:
+  - groupName: worker
+    replicas: 1
+    rayStartParams: {}
+    template:
+      spec:
+        containers:
+        - name: ray-worker
+          image: localhost:5000/ray-triton-app:latest
+

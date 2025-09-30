@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rayserve
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: triton-model-pv
+  namespace: rayserve
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/triton-model-repository
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: triton-model-pvc
+  namespace: rayserve
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  volumeName: triton-model-pv
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triton-server
+  namespace: rayserve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triton-server
+  template:
+    metadata:
+      labels:
+        app: triton-server
+    spec:
+      containers:
+        - name: triton-server
+          image: nvcr.io/nvidia/tritonserver:24.09-py3
+          args: ["tritonserver", "--model-repository=/models", "--model-control-mode=explicit", "--log-verbose=1"]
+          ports:
+            - containerPort: 8000   # HTTP port
+            - containerPort: 8001   # gRPC port
+            - containerPort: 8002   # Metrics port
+          volumeMounts:
+            - mountPath: /models
+              name: model-repo
+      volumes:
+        - name: model-repo
+          persistentVolumeClaim:
+            claimName: triton-model-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triton-server
+  namespace: rayserve
+spec:
+  type: LoadBalancer
+  selector:
+    app: triton-server
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+    - name: grpc
+      port: 8001
+      targetPort: 8001
+    - name: metrics
+      port: 8002 
+      targetPort: 8002
